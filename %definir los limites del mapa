@@ -1,0 +1,19 @@
+%definir los limites del mapa
+largo(x,50).
+ancho(y,10).
+mapa(X,Y):- largo(X,50), ancho(Y,10).
+
+
+tiene(personaje, vida).
+tiene(personaje, posicionX).
+tiene(personaje, etiqueta).
+tiene(personaje, bando).
+
+esPersonaje(VIDA, POS, ETIQUETA, BANDO):- tiene(personaje, VIDA), tiene(personaje, POS), tiene(personaje, ETIQUETA), tiene(personaje, BANDO).
+
+es_estado(ESTADO, playing).
+es_estado(ESTADO, draw).
+es_estado(ESTADO, victory).
+es_estado(ESTADO, defeat).
+
+createScene(MAPA, PERSONAJE, PERSONAJE2, ESTADO).
