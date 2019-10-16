@@ -48,9 +48,9 @@ enemigos(6).
 enemigos(8).
 
 %ejemplo([1,2,3,4,5,6,8,apa,7,54,7,8,5,47,78,4,4,7,4,1,16,8,7,6,7,uwu,7687,68,76,7,657,6,575,64,987,9891879,81797,197,87,97,87,87,178]).
-escena_lil_2_3(SCENE):- SCENE = [[10,5], [[0,player, 100, 1], [1,player,100, 2]], [[10, player, 100, 1], [9, player, 100, 2]], 30,  playing].
-escena_lil_2_2(SCENE):- SCENE = [[10,5], [[0,player, 100, 1], [1,player,100, 2]], [[10, player, 75, 1], [9, player, 75, 2]], 30,  playing].
-escena_lil_2_1(SCENE):- SCENE = [[10,5], [[0,player, 100, 1], [1,player,100, 2]], [[10, player, 50, 1], [9, player, 50, 2]], 30,  playing].
+escena_lil_2_3(SCENE):- SCENE = [[10,5], [[0,player, 100, 1], [1,player,100, 2]], [[10, cpu, 100, 1], [9, cpu, 100, 2]], 30,  playing].
+escena_lil_2_2(SCENE):- SCENE = [[10,5], [[0,player, 100, 1], [1,player,100, 2]], [[10, cpu, 75, 1], [9, cpu, 75, 2]], 30,  playing].
+escena_lil_2_1(SCENE):- SCENE = [[10,5], [[0,player, 100, 1], [1,player,100, 2]], [[10, cpu, 50, 1], [9, cpu, 50, 2]], 30,  playing].
 
 escena_lil_4_3(SCENE):- SCENE = [[10,5], [[0,player, 100, 1], [1,player,100, 2], [2,player,100, 3], [3,player,100, 4]], [[10, cpu, 100, 1], [9, cpu, 100, 2],[8,cpu,100, 3],[7,cpu,100, 4]], 30,  playing].
 escena_lil_4_2(SCENE):- SCENE = [[10,5], [[0,player, 100, 1], [1,player,100, 2], [2,player,100, 3], [3,player,100, 4]], [[10, cpu, 75, 1], [9, cpu, 75, 2],[8,cpu,75, 3],[7,cpu,75, 4]], 30,  playing].
@@ -92,10 +92,30 @@ selectScene(N,M,E,D,SCENE):- 	((N=10,M=5,E=2,D=1),(escena_lil_2_1(SCENE)));
 								((N=20,M=20,E=8,D=3),(escena_big_8_3(SCENE))).
 
 
-createScene(N,M,E,D,SCENE):- largo(N), alto(M), enemigos(E), dificultad(D), selectScene(N,M,E,D,SCENE).
+createScene(N,M,E,D,SCENE):- largo(N), alto(M), enemigos(E), dificultad(D), selectScene(N,M,E,D,SCENE),!.
 
 
 %CheckScene
+
+compararPos([_,_,_,_], []).
+compararPos([POS1,_,_,_], [POS2,_,_,_]):- not( POS1=POS2 ) .
+compararPos([POS,_,_,_], [[POS2, _,_,_]|PJs]):- not(POS = POS2), compararPos([POS, _,_,_],PJs),! .
+
+compararPosIDPj([_,_,_,_], []).
+compararPosIDPj([POS,_,_,ID], [[POS2, _,_,ID2]|PJs]):- not(POS = POS2), not(ID = ID2), compararPosIDPj([POS, _,_,ID],PJs),! .
+
+
+%###################
+
+%###################
+
+diferentePos([],[]).
+diferentePos([PJ|PJs],[]):- compararPosIDPj(PJ, PJs), diferentePos(PJs,[]),! .
+diferentePos([],[CPU|CPUs]):-  compararPosIDPj(CPU, CPUs),diferentePos([], CPUs),! .
+diferentePos([PJ|PJs], [CPU|CPUs]):- 
+compararPosIDPj(PJ, PJs), compararPosIDPj(CPU, CPUs), compararPos(PJ,CPU),compararPos(CPU,PJs), compararPos(PJ,CPUs), diferentePos(PJs, CPUs), ! .
+diferentePos([]).
+diferentePos([PJ|PJs]):- compararPosIDPj(PJ, PJs), diferentePos(PJs).
 
 etiquetaPlayer(player).
 etiquetaCPU(cpu).
@@ -110,13 +130,21 @@ esVida([VIDA| ID],X):- salud(VIDA), esID(ID,X).
 esPlayer([ETIQUETA|VIDA],X):- etiquetaPlayer(ETIQUETA), esVida(VIDA,X).
 esCPU([ETIQUETA|VIDA],X):- etiquetaCPU(ETIQUETA), esVida(VIDA,X).
 
-es_Character_Cpu([POS|ETIQUETA],[],  X):- posValida(POS,X), esCPU(ETIQUETA,X).
-es_Character_Cpu([POS|ETIQUETA],[CPU|CPUs],X):- posValida(POS,X), esCPU(ETIQUETA,X), es_Character_Cpu(CPU,CPUs,X) .
-esCharacter([POS|ETIQUETA],[],  X):- posValida(POS,X), esPlayer(ETIQUETA,X).
-esCharacter([POS|ETIQUETA],[PLAYER|PLAYERs],X):- posValida(POS,X), esPlayer(ETIQUETA,X), esCharacter(PLAYER,PLAYERs,X) .
+es_Character_Cpu([],  _).
+%posValida(POS,X), esCPU(ETIQUETA,X).
+es_Character_Cpu([[POS|ETIQUETA]|CPUs],X):- posValida(POS,X), esCPU(ETIQUETA,X), es_Character_Cpu(CPUs,X) .
+esCharacter([],  _). 
+%:- posValida(POS,X), esPlayer(ETIQUETA,X).
+esCharacter([[POS|ETIQUETA]|PLAYERs],X):- posValida(POS,X), esPlayer(ETIQUETA,X), esCharacter(PLAYERs,X) .
 
-checkScene([X,Y], [PLAYER|PLAYERs], [CPU|CPUs], TIEMPO, ESTADO):- 
-			largo(X), alto(Y), esCharacter(PLAYER,PLAYERs,X), es_Character_Cpu(CPU,CPUs, X), (TIEMPO >= 0; TIEMPO =< 30), es_estado(ESTADO), !.
+
+checkScene([[X,Y], PLAYERS, CPUS, TIEMPO, ESTADO]):- 
+			largo(X), alto(Y), 
+			((PLAYERS = [], CPUS = []);
+			(PLAYERS= [], es_Character_Cpu(CPUS, X), diferentePos(PLAYERS,CPUS));
+			(CPUS = [], es_Character_Cpu(CPUS, X), diferentePos(PLAYERS,CPUS));
+			(esCharacter(PLAYERS,X), es_Character_Cpu(CPUS, X), diferentePos(PLAYERS,CPUS))), 
+			(TIEMPO >= 0; TIEMPO =< 30), es_estado(ESTADO), !.
 %checkScene([X,Y], [PLAYER|PLAYERs], [CPU|CPUs], TIEMPO, ESTADO):- 
 %			largo(X), alto(Y), esCharacter(PLAYER,PLAYERs,X), es_Character_Cpu(CPU,CPUs, X), (TIEMPO >= 0; TIEMPO =< 30), es_estado(ESTADO).
 
@@ -135,17 +163,13 @@ revisar([PJ|PJs], MEMBER, MOVE,NL, PERSONAJES, LARGO_MAPA):-
 (revisar(PJs, [PJ|NL], PERSONAJES); revisar(PJs, MEMBER, MOVE, [PJ|NL], PERSONAJES,LARGO_MAPA))
 .
 
-compararPos([_,_,_,_], []).
-compararPos([POS1,_,_,_], [POS2,_,_,_]):- not( POS1=POS2 ) .
-compararPos([POS,_,_,_], [[POS2, _,_,_]|PJs]):- not(POS = POS2), compararPos([POS, _,_,_],PJs),! .
 
-compararPosIDPj([_,_,_,_], []).
-compararPosIDPj([POS,_,_,ID], [[POS2, _,_,ID2]|PJs]):- not(POS = POS2), not(ID = ID2), compararPosIDPj([POS, _,_,ID],PJs),! .
-
-		
 mover(PERSONAJES, [PJ|PJs], MEMBER, MOVE,LARGO_MAPA):- revisar([PJ|PJs], MEMBER, MOVE,[], PERSONAJES,LARGO_MAPA) .
-moveMember([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], Member, MoveDir, SceneOut):- ESTATE = playing,
-checkScene([X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE), mover(PERSONAJES, [PJ|PJs], Member, MoveDir,X), invertirLista(PERSONAJES, NEWPERSONAJES), SceneOut = [[X,Y], NEWPERSONAJES, [CPU|CPUs], NEWTIME,ESTATE] , NEWTIME is TIME - 1 .
+
+moveMember([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], [TIPO, Member], MoveDir, SceneOut):- ESTATE = playing,
+checkScene([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE]), ((TIPO=player, mover(PERSONAJES, [PJ|PJs], Member, MoveDir,X),  invertirLista(PERSONAJES, NEWPERSONAJES), SceneOut = [[X,Y], NEWPERSONAJES, [CPU|CPUs], NEWTIME,ESTATE] , NEWTIME is TIME - 1),!;
+														(TIPO=cpu, mover(COMP, [CPU|CPUs], Member, MoveDir,X),  invertirLista(COMP, NEWCOMP), SceneOut = [[X,Y], [PJ|PJs], NEWCOMP, NEWTIME,ESTATE] , NEWTIME is TIME - 1)), 
+checkScene(SceneOut).
 
 %Shoot
 
@@ -157,17 +181,24 @@ xdeT(XI, ALPHA, T, X):- X is XI + (8 * cos(ALPHA) * T).
 seno(A,X):- X is sin(A) .
 coseno(A,X):- X is cos(A) .
 
-disparar(POSINICIAL, ALPHA, IMPACTO):- tiempoFinal(ALPHA, T), xdeT(POSINICIAL, ALPHA, T, X), round(X,IMPACTO) .
+disparar(POSINICIAL, Angle, IMPACTO):- convertir(Angle,ALPHA) ,tiempoFinal(ALPHA, T), xdeT(POSINICIAL, ALPHA, T, X), round(X,IMPACTO) .
 
 obtenerMember([_,_,_,ID], Member):- ID = Member.
-obtenerPos([POS,_,_,_], POS).
+obtenerPos([POS,_,_,_], POSINICIAL):- POSINICIAL = POS.
 
 damage([POS,TIPO,VIDA,ID], IMPACTO, CHAR):- POS = IMPACTO, CHAR=[POS, TIPO, NEWVIDA, ID], NEWVIDA is (VIDA - 50).
 vidaCero([_,_,VIDA,_]):- VIDA =< 0 .
+vidaSobreCero([_,_,VIDA,_]):- VIDA >= 1; VIDA =< 100. 
 
+impactoPj([], [], PERSONAJES):- PERSONAJES=[] .
 impactoPj([], PERSONAJES, PERSONAJES).
-impactoPj([PLAYER|PLAYERs], IMPACTO, LI, PERSONAJES):- 
-(damage(PLAYER,IMPACTO,CHARACTER), ((vidaCero(CHARACTER), impactoPj(PLAYERs, LI, PERSONAJES);impactoPj(PLAYERs, IMPACTO, LI, PERSONAJES));
+impactoPj([PJ], IMPACTO, LI, PERSONAJES):-
+(damage(PJ,IMPACTO,CHARACTER), ((vidaCero(CHARACTER), (impactoPj([], LI, PERSONAJES);impactoPj([], IMPACTO, LI, PERSONAJES)));
+(impactoPj([], [CHARACTER|LI], PERSONAJES); impactoPj([], IMPACTO, [CHARACTER|LI], PERSONAJES)))),!;
+(impactoPj([], [PJ|LI], PERSONAJES); impactoPj([], IMPACTO, [PJ|LI], PERSONAJES)).
+
+impactoPj([PLAYER|PLAYERs], IMPACTO, LI, PERSONAJES):-
+(damage(PLAYER,IMPACTO,CHARACTER), ((vidaCero(CHARACTER), (impactoPj(PLAYERs, LI, PERSONAJES);impactoPj(PLAYERs, IMPACTO, LI, PERSONAJES)));
 (impactoPj(PLAYERs, [CHARACTER|LI], PERSONAJES); impactoPj(PLAYERs, IMPACTO, [CHARACTER|LI], PERSONAJES)))),!;
 (impactoPj(PLAYERs, [PLAYER|LI], PERSONAJES); impactoPj(PLAYERs, IMPACTO, [PLAYER|LI], PERSONAJES))
 .
@@ -178,18 +209,44 @@ impactoCpu([CPU|CPUs], IMPACTO, LI, PERSONAJES):-
 (impactoPj(CPUs, [CPU|LI], PERSONAJES); impactoPj(CPUs, IMPACTO, [CPU|LI], PERSONAJES))
 .*/
 
-disparoCPU([[POS, _,_,ID]], Member, Angle, IMPACTO):- (Member = ID, convertir(Angle, ALPHA),disparar(POS, ALPHA, IMPACTO)).
+disparoCPU([[POS, _,_,ID]], Member, Angle, IMPACTO):- (Member = ID,disparar(POS, Angle, IMPACTO)).
 disparoCPU([CPU|CPUs], Member, Angle, IMPACTO ):- 
 (obtenerMember(CPU, Member), obtenerPos(CPU, POS), disparar(POS, Angle, IMPACTO)); 
 (disparoCPU(CPUs, Member, Angle, IMPACTO)) .
-disparoPlayer([[POS, _,_,ID]], Member, Angle, IMPACTO):- (Member = ID, convertir(Angle, ALPHA),disparar(POS, ALPHA, IMPACTO)).
+disparoPlayer([[POS, _,_,ID]], Member, Angle, IMPACTO):- (Member = ID,disparar(POS, Angle, IMPACTO)).
 disparoPlayer([PLAYER|PLAYERs], Member, Angle, IMPACTO):- 
-(obtenerMember(PLAYER, Member), obtenerPos(PLAYER, POS), disparar(POS, Angle, IMPACTO)); 
+(obtenerMember(PLAYER, Member), obtenerPos(PLAYER, POS) ,disparar(POS, Angle, IMPACTO)); 
 (disparoPlayer(PLAYERs, Member, Angle, IMPACTO)) .
 
-shoot([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], [TIPO,Member], ShotType, Angle, _, SceneOut):- ESTATE = playing,
+shoot([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], [TIPO,Member], ShotType, Angle, _, SceneOut):- ESTATE = playing, checkScene([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE]),
 %checkScene([[X,Y], [PJ|PJs], [CPU|CPUs], TIEMPO,ESTATE]), 
 (ShotType = parabolico, (TIPO = player, disparoPlayer([PJ|PJs], Member, Angle, IMPACTO)); (TIPO = cpu, disparoCPU([CPU|CPUs], Member, Angle, IMPACTO))),
-(impactoPj([PJ|PJs], IMPACTO, [], PERSONAJES), impactoPj([CPU|CPUs], IMPACTO, [], COMP)), (invertirLista(COMP, COMP2), invertirLista(PERSONAJES,PERSONAJES2)),
-SceneOut = [[X,Y], PERSONAJES2, COMP2, NEWTIME, ESTATE], NEWTIME is TIME - 1,!
+(impactoPj([PJ|PJs], IMPACTO, [], PERSONAJES), impactoPj([CPU|CPUs], IMPACTO, [], COMP)), 
+((COMP = [], PERSONAJES = [], SceneOut = [[X,Y], PERSONAJES, COMP, NEWTIME, draw]); 
+(PERSONAJES = [], invertirLista(COMP, COMP2), SceneOut = [[X,Y], PERSONAJES, COMP2, NEWTIME, defeat]);
+(COMP = [], invertirLista(PERSONAJES,PERSONAJES2), SceneOut = [[X,Y], PERSONAJES2, COMP, NEWTIME, victory]);
+(invertirLista(PERSONAJES,PERSONAJES2), invertirLista(COMP,COMP2),  SceneOut = [[X,Y], PERSONAJES2, COMP2, NEWTIME, ESTATE])), NEWTIME is TIME - 1,checkScene(SceneOut) ,!
+.
+
+%Update
+
+random(L, U, R) :-
+integer(L), integer(U), !,R is L+random(U-L).
+
+moveAleatorio([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], SceneOutAux):- 
+(random(-8,9, MoveDir), random(1,9,Member), moveMember([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], [cpu, Member], MoveDir, SceneOutAux)),!;
+moveAleatorio([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], SceneOutAux)
+.
+
+estadoJugable([_,_,_,_,Estado]):- Estado=playing .
+
+shootAleatorio([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], SceneOut):- 
+(random(-90,91,Angle),random(1,9,Member) , shoot([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], [cpu,Member], parabolico, Angle, _, SceneOut)),!;
+shootAleatorio([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], SceneOut)
+.
+
+updateScene([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], SEED, SceneOut):-
+checkScene([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE]), moveAleatorio([[X,Y], [PJ|PJs], [CPU|CPUs], TIME,ESTATE], SceneOutAux),
+((estadoJugable(SceneOutAux), shootAleatorio(SceneOutAux, SceneOut)),!;
+(SceneOut = SceneOutAux)), SEED = _
 .
